@@ -347,20 +347,20 @@ if data:
     st.write(data.get("commercial_considerations", ""))
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="email-box">
-            <h3 style="color:white; margin-top:0;">Speak to us about a deeper review</h3>
-            <p>
-                This diagnostic provides an initial view only. If the themes reflect what you are seeing,
-                we can help turn this into a fuller operational review with clearer priorities, financial impact,
-                implementation considerations and next steps.
-            </p>
-            <p>
-                Email us with a short summary of your situation:
-            </p>
-            <p style="font-size:1.1rem;"><strong>{CONTACT_EMAIL}</strong></p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+st.markdown(
+    f"""
+    <div class="email-box">
+        <h3 style="color:white; margin-top:0;">Further consultation</h3>
+        <p>
+            This diagnostic provides an initial view only. If the themes reflect what you are seeing,
+            we can support a more detailed operational review, including clearer priorities,
+            commercial impact and implementation considerations.
+        </p>
+        <p style="font-size:1.1rem;">
+            <strong>Contact for further consultation:</strong><br>
+            info@peak-resourcing.com
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
