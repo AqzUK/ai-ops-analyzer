@@ -1,9 +1,6 @@
 import json
 import os
-import csv
-from datetime import datetime
 
-import pandas as pd
 from dotenv import load_dotenv
 import streamlit as st
 from openai import OpenAI
@@ -14,28 +11,14 @@ st.set_page_config(
     layout="wide"
 )
 
-DETAILED_REPORT_URL = "https://your-payment-link-for-report"
-REPORT_AND_CALL_URL = "https://your-payment-link-for-report-and-call"
 CONTACT_EMAIL = "your@email.com"
-LEADS_FILE = "leads.csv"
 
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #f4f7fb;
-    }
-
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
-        max-width: 1280px;
-    }
-
-    h1, h2, h3 {
-        color: #16325c;
-        font-family: Arial, sans-serif;
-    }
+    .stApp { background-color: #f4f7fb; }
+    .block-container { padding-top: 1.5rem; max-width: 1280px; }
+    h1, h2, h3 { color: #16325c; font-family: Arial, sans-serif; }
 
     .hero-card {
         background: linear-gradient(135deg, #16325c 0%, #214a86 100%);
@@ -50,7 +33,6 @@ st.markdown(
         font-size: 2.4rem;
         font-weight: 700;
         margin-bottom: 0.4rem;
-        line-height: 1.15;
     }
 
     .hero-subtitle {
@@ -58,19 +40,10 @@ st.markdown(
         opacity: 0.92;
     }
 
-    .section-card {
+    .section-card, .output-card {
         background: white;
         border-radius: 16px;
-        padding: 1rem 1rem 0.7rem 1rem;
-        box-shadow: 0 4px 18px rgba(16, 24, 40, 0.06);
-        border: 1px solid #e7edf5;
-        margin-bottom: 1rem;
-    }
-
-    .output-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+        padding: 1rem;
         box-shadow: 0 4px 18px rgba(16, 24, 40, 0.06);
         border: 1px solid #e7edf5;
         margin-bottom: 1rem;
@@ -85,13 +58,6 @@ st.markdown(
 
     div[data-testid="stTextArea"] textarea {
         border-radius: 12px;
-        border: 1px solid #d7dfeb;
-        background-color: #f9fbfe;
-        font-size: 0.98rem;
-    }
-
-    div[data-testid="stTextInput"] input {
-        border-radius: 10px;
         border: 1px solid #d7dfeb;
         background-color: #f9fbfe;
     }
@@ -110,63 +76,25 @@ st.markdown(
         color: white;
     }
 
-    img {
-        filter: brightness(0.72);
-    }
+    img { filter: brightness(0.72); }
 
     [data-testid="stSidebar"] {
         background-color: #eef3f9;
         border-right: 1px solid #dde6f1;
     }
 
-    .cta-box {
+    .email-box {
         background: linear-gradient(135deg, #16325c 0%, #214a86 100%);
         color: white;
         border-radius: 18px;
-        padding: 1.4rem 1.5rem;
+        padding: 1.5rem;
         margin-top: 1rem;
         box-shadow: 0 8px 24px rgba(22, 50, 92, 0.18);
-    }
-
-    .locked-box {
-        background: #fff8e8;
-        border: 1px solid #f1d38a;
-        border-radius: 16px;
-        padding: 1.2rem 1.2rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
-
-def save_lead_locally(payload: dict) -> None:
-    file_exists = os.path.exists(LEADS_FILE)
-    with open(LEADS_FILE, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=[
-                "timestamp",
-                "name",
-                "email",
-                "company",
-                "selected_option",
-                "industry",
-                "analysis_depth",
-                "include_cost_view",
-                "problem_overview"
-            ]
-        )
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(payload)
-
-
-def valid_email(email: str) -> bool:
-    return "@" in email and "." in email
-
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -186,29 +114,24 @@ client = OpenAI(api_key=api_key)
 if "analysis_data" not in st.session_state:
     st.session_state.analysis_data = None
 
-if "lead_saved" not in st.session_state:
-    st.session_state.lead_saved = False
-
-if "selected_option" not in st.session_state:
-    st.session_state.selected_option = ""
-
-
 with st.sidebar:
     st.markdown("## Analysis Settings")
     industry = st.selectbox(
         "Industry",
-        ["General", "Customer Support", "SaaS", "Recruitment", "Professional Services", "Education", "Operations"]
+        [
+            "General",
+            "Customer Support",
+            "SaaS",
+            "Recruitment",
+            "Professional Services",
+            "Education",
+            "Operations"
+        ]
     )
-    analysis_depth = st.selectbox(
-        "Analysis depth",
-        ["Standard", "Detailed"]
-    )
-    include_cost_view = st.selectbox(
-        "Include cost view",
-        ["Yes", "No"]
-    )
+    analysis_depth = st.selectbox("Analysis depth", ["Standard", "Detailed"])
+    include_cost_view = st.selectbox("Include cost view", ["Yes", "No"])
     st.markdown("---")
-    st.caption("The free version gives a high-level diagnostic. Paid options unlock a more tailored review.")
+    st.caption("This tool provides a high-level diagnostic. For a fuller review, speak to us.")
 
 logo_col1, logo_col2, logo_col3 = st.columns([2, 1, 2])
 with logo_col2:
@@ -219,7 +142,7 @@ st.markdown(
     <div class="hero-card">
         <div class="hero-title">Peak Operations Efficiency Analyzer</div>
         <div class="hero-subtitle">
-            Structured operational diagnostics using consulting logic across process, people, technology, demand and governance.
+            Structured operational diagnostics across process, people, technology, demand, governance and commercial impact.
         </div>
     </div>
     """,
@@ -236,8 +159,8 @@ with left:
     problem = st.text_area(
         "Problem Overview",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. Our customer support team is missing SLAs and response times have increased over the past 3 months."
+        height=140,
+        placeholder="e.g. Our support team is missing SLAs and response times have increased over the past 3 months."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -246,8 +169,8 @@ with left:
     process = st.text_area(
         "Process",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. Tickets come in via email and are manually assigned. Multiple handoffs between teams and unclear ownership."
+        height=140,
+        placeholder="e.g. Work is manually assigned, there are multiple handoffs and ownership is unclear."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -256,8 +179,8 @@ with left:
     tech = st.text_area(
         "Technology",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. Using Zendesk with limited automation. No routing rules or prioritisation logic in place."
+        height=140,
+        placeholder="e.g. Using Zendesk with limited automation, no routing rules and no prioritisation logic."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -267,8 +190,8 @@ with right:
     fte = st.text_area(
         "Team & Capacity",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. 12 support agents, 2 team leads. Mix of junior and experienced staff. No clear tier structure."
+        height=140,
+        placeholder="e.g. 12 agents, 2 team leads, mixed experience levels, no clear tier structure."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -277,22 +200,28 @@ with right:
     metrics = st.text_area(
         "Demand & Metrics",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. 1,200 tickets per week. SLA is 48 hours but currently averaging 72 hours. Backlog increasing."
+        height=140,
+        placeholder="e.g. 1,200 tickets per week, SLA 48 hours, current average 72 hours, backlog increasing."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.markdown('<div class="mini-label">🧠 Additional Context</div>', unsafe_allow_html=True)
-    context = st.text_area(
-        "Additional Context",
+    st.markdown('<div class="mini-label">💷 Commercial / Financial Context</div>', unsafe_allow_html=True)
+    commercial = st.text_area(
+        "Commercial / Financial Context",
         label_visibility="collapsed",
-        height=150,
-        placeholder="e.g. Team morale is dropping, urgent and low-priority issues are mixed together, and reporting is still manual."
+        height=140,
+        placeholder="e.g. Rising headcount cost, margin pressure, customer churn risk, revenue leakage or sales handoff issues."
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-analyse_clicked = st.button("Analyse")
+context = st.text_area(
+    "Additional Context",
+    height=100,
+    placeholder="e.g. Team morale is dropping, urgent and low-priority work is mixed together, reporting is manual."
+)
+
+analyse_clicked = st.button("Run Analysis")
 
 if analyse_clicked:
     if not problem.strip():
@@ -301,7 +230,7 @@ if analyse_clicked:
         prompt = f"""
 You are a senior operations consultant.
 
-Your task is to analyse the problem using structured consulting methodologies.
+Analyse the operational problem using structured consulting thinking.
 
 Internally determine the most appropriate problem-solving model. Choose from:
 - Process Optimisation
@@ -311,14 +240,10 @@ Internally determine the most appropriate problem-solving model. Choose from:
 - Technology / Automation Transformation
 
 Do not explicitly state which model you are using.
+Do not mention consulting firm names or framework names.
 
-Instead, let it shape how you:
-- structure the analysis
-- prioritise insights
-- define recommendations
-
-Write in British English and use a calm, clear, practical tone.
-Keep the output easy for a business user to understand, while preserving strong consulting logic and prioritisation.
+Write entirely in British English. Use UK spelling and terminology.
+Use a calm, clear, practical and professional tone.
 
 Industry:
 {industry}
@@ -344,6 +269,9 @@ Demand & Metrics:
 Technology:
 {tech}
 
+Commercial / Financial Context:
+{commercial}
+
 Additional Context:
 {context}
 
@@ -351,24 +279,10 @@ Return valid JSON only in this exact format:
 
 {{
   "executive_summary": "Short summary of the main issue and primary recommendation.",
-  "assessment_approach": "Brief explanation of how the problem has been assessed in plain English without naming consulting frameworks.",
-  "current_operating_model": "Describe the likely current state across process, people, technology, governance and data.",
+  "assessment_approach": "Brief explanation of how the problem has been assessed in plain English without naming frameworks.",
   "key_issues": "Main inefficiencies and bottlenecks.",
-  "root_causes": "What is most likely driving the problem.",
-  "target_operating_model": "Describe a stronger future-state design.",
-  "recommended_actions": "Top priority actions with rationale.",
-  "roadmap": "Short term, medium term and long term actions.",
-  "cost_benefit": "Likely cost-saving opportunities and possible investment needs.",
-  "impact_effort": [
-    {{"initiative": "Automation", "impact": 8, "effort": 4}},
-    {{"initiative": "Process Redesign", "impact": 7, "effort": 6}},
-    {{"initiative": "Team Changes", "impact": 6, "effort": 5}}
-  ],
-  "current_vs_target": [
-    {{"metric": "Resolution Time", "current": 4, "target": 2}},
-    {{"metric": "SLA Compliance", "current": 60, "target": 90}},
-    {{"metric": "Manual Work", "current": 80, "target": 40}}
-  ]
+  "initial_recommendations": "Initial high-level recommendations only.",
+  "commercial_considerations": "Brief note on possible cost, revenue, margin or customer impact where relevant."
 }}
 
 Rules:
@@ -376,10 +290,11 @@ Rules:
 - No markdown
 - No code fences
 - No extra text
-- Make the analysis specific to the inputs
-- Keep chart values realistic and illustrative
-- Do not mention MECE
-- Do not name consulting firms or framework names in the output
+- Be specific to the user inputs
+- Do not provide a full implementation plan
+- Do not provide detailed root cause analysis
+- Do not provide a full target operating model
+- Keep enough value to be useful, but leave deeper analysis for a follow-up conversation
 """
 
         try:
@@ -393,10 +308,7 @@ Rules:
             )
 
             result = response.choices[0].message.content
-            data = json.loads(result)
-            st.session_state.analysis_data = data
-            st.session_state.lead_saved = False
-            st.session_state.selected_option = ""
+            st.session_state.analysis_data = json.loads(result)
 
         except Exception as e:
             st.error(f"Error: {e}")
@@ -406,9 +318,9 @@ data = st.session_state.analysis_data
 if data:
     st.markdown("---")
 
-    free_left, free_right = st.columns(2)
+    col_a, col_b = st.columns(2)
 
-    with free_left:
+    with col_a:
         st.markdown('<div class="output-card">', unsafe_allow_html=True)
         st.subheader("Executive Summary")
         st.write(data.get("executive_summary", ""))
@@ -419,7 +331,7 @@ if data:
         st.write(data.get("key_issues", ""))
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with free_right:
+    with col_b:
         st.markdown('<div class="output-card">', unsafe_allow_html=True)
         st.subheader("How the problem has been assessed")
         st.write(data.get("assessment_approach", ""))
@@ -427,81 +339,28 @@ if data:
 
         st.markdown('<div class="output-card">', unsafe_allow_html=True)
         st.subheader("Initial Recommendations")
-        st.write(data.get("recommended_actions", ""))
+        st.write(data.get("initial_recommendations", ""))
         st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown('<div class="output-card">', unsafe_allow_html=True)
+    st.subheader("Commercial Considerations")
+    st.write(data.get("commercial_considerations", ""))
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown(
-        """
-        <div class="locked-box">
-            <h3 style="margin-top:0; color:#16325c;">🔒 Full report locked</h3>
-            <p style="margin-bottom:0.4rem;">
-                The free version gives you the headline view. The deeper report includes:
+        f"""
+        <div class="email-box">
+            <h3 style="color:white; margin-top:0;">Speak to us about a deeper review</h3>
+            <p>
+                This diagnostic provides an initial view only. If the themes reflect what you are seeing,
+                we can help turn this into a fuller operational review with clearer priorities, financial impact,
+                implementation considerations and next steps.
             </p>
-            <p style="margin-bottom:0.2rem;">• Full root cause analysis</p>
-            <p style="margin-bottom:0.2rem;">• Target operating model</p>
-            <p style="margin-bottom:0.2rem;">• Prioritised roadmap</p>
-            <p style="margin-bottom:0.2rem;">• Cost and benefit view</p>
-            <p style="margin-bottom:0;">• Charts and structured report output</p>
+            <p>
+                Email us with a short summary of your situation:
+            </p>
+            <p style="font-size:1.1rem;"><strong>{CONTACT_EMAIL}</strong></p>
         </div>
         """,
         unsafe_allow_html=True
     )
-
-    st.markdown("## Unlock Full Analysis")
-    st.write("Enter your details to request the detailed report or the report plus walkthrough.")
-    st.caption("By submitting your details, you agree to be contacted about your report request.")
-
-    lead_col1, lead_col2, lead_col3 = st.columns(3)
-    with lead_col1:
-        name = st.text_input("Your name")
-    with lead_col2:
-        email = st.text_input("Work email")
-    with lead_col3:
-        company = st.text_input("Company")
-
-    option_col1, option_col2 = st.columns(2)
-
-    with option_col1:
-        detailed_clicked = st.button("Request Detailed Report (£75)")
-
-    with option_col2:
-        call_clicked = st.button("Request Report + 30 min Walkthrough (£150)")
-
-    if detailed_clicked or call_clicked:
-        selected_option = "Detailed Report (£75)" if detailed_clicked else "Report + Walkthrough (£150)"
-
-        if not name.strip() or not email.strip() or not company.strip():
-            st.warning("Please complete your name, work email, and company.")
-        elif not valid_email(email.strip()):
-            st.warning("Please enter a valid work email.")
-        else:
-            payload = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "name": name.strip(),
-                "email": email.strip(),
-                "company": company.strip(),
-                "selected_option": selected_option,
-                "industry": industry,
-                "analysis_depth": analysis_depth,
-                "include_cost_view": include_cost_view,
-                "problem_overview": problem[:300].strip()
-            }
-
-            try:
-                save_lead_locally(payload)
-                st.session_state.lead_saved = True
-                st.session_state.selected_option = selected_option
-                st.success("Your details have been captured. You can now continue to payment.")
-            except Exception as e:
-                st.error(f"Could not save your details: {e}")
-
-    if st.session_state.lead_saved:
-        st.markdown("---")
-        st.markdown("### Continue to payment")
-
-        if st.session_state.selected_option == "Detailed Report (£75)":
-            st.link_button("Pay for Detailed Report", DETAILED_REPORT_URL)
-        elif st.session_state.selected_option == "Report + Walkthrough (£150)":
-            st.link_button("Pay for Report + Walkthrough", REPORT_AND_CALL_URL)
-
-        st.caption(f"If you have any questions, contact {CONTACT_EMAIL}.")
